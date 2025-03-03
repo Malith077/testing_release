@@ -264,7 +264,6 @@ export function dispatchWorkflow(workflowName: string) {
 
 export async function closeExistingReleaseCandidatePR(previousMajor: number): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
-	  // List open PRs with the "release-candidate" label.
 	  execFile(
 		"gh",
 		[
@@ -288,7 +287,6 @@ export async function closeExistingReleaseCandidatePR(previousMajor: number): Pr
 		  }
 		  // Filter PRs whose branch name indicates a version with the previous major.
 		  const prsToClose = prs.filter(pr => {
-			// Expect branch names like "versioning/release/X.Y.Z"
 			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
 			if (match) {
 			  const branchVersion = match[1];
@@ -300,31 +298,33 @@ export async function closeExistingReleaseCandidatePR(previousMajor: number): Pr
 			console.log("No outdated RC PRs to close.");
 			return resolve();
 		  }
-		  let closedCount = 0;
-		  prsToClose.forEach(pr => {
-			execFile(
-			  "gh",
-			  [
-				"pr",
-				"close",
-				pr.number.toString(),
-				"--delete-branch",
-				"-c",
-				"Closing outdated RC due to major version update"
-			  ],
-			  (err2, stdout2, stderr2) => {
-				if (err2) {
-				  console.error(`Error closing RC PR ${pr.number}:`, stderr2);
-				} else {
-				  console.log(`Closed RC PR ${pr.number} (branch ${pr.headRefName}).`);
-				}
-				closedCount++;
-				if (closedCount === prsToClose.length) {
-				  resolve();
-				}
-			  }
-			);
-		  });
+		  // Use Promise.all to attempt to close all PRs.
+		  Promise.all(
+			prsToClose.map(pr =>
+			  new Promise<void>(resolvePr => {
+				execFile(
+				  "gh",
+				  [
+					"pr",
+					"close",
+					pr.number.toString(),
+					"--delete-branch",
+					"-c",
+					"Closing outdated RC due to major version update"
+				  ],
+				  (err2, stdout2, stderr2) => {
+					if (err2) {
+					  console.error(`Error closing RC PR ${pr.number}:`, stderr2);
+					} else {
+					  console.log(`Closed RC PR ${pr.number} (branch ${pr.headRefName}).`);
+					}
+					// Resolve regardless of error to let all attempts complete.
+					resolvePr();
+				  }
+				);
+			  })
+			)
+		  ).then(() => resolve());
 		}
 	  );
 	});
