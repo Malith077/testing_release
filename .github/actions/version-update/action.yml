@@ -30,6 +30,8 @@ runs:
       shell: bash
       run: |
         git fetch --tags
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
         npm run version:update -- --suffix=$VERSION_SUFFIX
       env:
         GITHUB_TOKEN: ${{ inputs.gh_token }}
