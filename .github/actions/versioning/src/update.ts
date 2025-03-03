@@ -18,7 +18,7 @@ import semver from "semver";
   const nextVersion = changeDetails.repository.change.nextVersion;
   const isMajorBump =
     nextVersion && semver.major(nextVersion) > semver.major(currentVersion);
-
+  console.log(`curentVersion: ${currentVersion} =>  nextVersion: ${nextVersion} `);
   if (isMajorBump) {
     console.log(
       `Detected major version bump: ${currentVersion} -> ${nextVersion}. Closing existing RC PR.`
