@@ -288,6 +288,7 @@ export async function closeExistingReleaseCandidatePR(previousMajor: number): Pr
 		  // Filter PRs whose branch name indicates a version with the previous major.
 		  const prsToClose = prs.filter(pr => {
 			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
+			console.log("match", match);
 			if (match) {
 			  const branchVersion = match[1];
 			  return semver.major(branchVersion) === previousMajor;
