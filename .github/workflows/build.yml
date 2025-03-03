@@ -1,5 +1,4 @@
-name: Echo Current Directory
-
+name: Build
 on:
   push:
     branches:
