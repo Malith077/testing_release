@@ -262,9 +262,9 @@ export function dispatchWorkflow(workflowName: string) {
 	});
 }
 
-export async function closeExistingReleaseCandidatePR(newMajor: number): Promise<void> {
+export async function closeExistingReleaseCandidatePR(previousMajor: number): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
-	  // List open PRs with the "release-candidate" label and include their branch names.
+	  // List open PRs with the "release-candidate" label.
 	  execFile(
 		"gh",
 		[
@@ -279,30 +279,27 @@ export async function closeExistingReleaseCandidatePR(newMajor: number): Promise
 			console.error("Error listing RC PRs:", stderr);
 			return resolve();
 		  }
-		  let prs;
+		  let prs: Array<{ number: number; headRefName: string }>;
 		  try {
-			prs = JSON.parse(stdout) as Array<{ number: number; headRefName: string }>;
+			prs = JSON.parse(stdout);
 		  } catch (parseError) {
 			console.error("Error parsing RC PR list:", parseError);
 			return resolve();
 		  }
-		  // Filter PRs whose branch major version is less than the new major.
+		  // Filter PRs whose branch name indicates a version with the previous major.
 		  const prsToClose = prs.filter(pr => {
-			// Expect branch name format like "versioning/release/X.Y.Z"
-			const match = pr.headRefName.match(/versioning\/release\/(\d+)\./);
+			// Expect branch names like "versioning/release/X.Y.Z"
+			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
 			if (match) {
-			  const branchMajor = parseInt(match[1], 10);
-			  return branchMajor < newMajor;
+			  const branchVersion = match[1];
+			  return semver.major(branchVersion) === previousMajor;
 			}
 			return false;
 		  });
-  
 		  if (prsToClose.length === 0) {
 			console.log("No outdated RC PRs to close.");
 			return resolve();
 		  }
-  
-		  // Close each outdated RC PR.
 		  let closedCount = 0;
 		  prsToClose.forEach(pr => {
 			execFile(
