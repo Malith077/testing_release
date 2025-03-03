@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v1.0.3
+
+### Miscellaneous
+
+- Gitignore
+
+
 ## Releasing_app: v1.0.2
 
 ### Miscellaneous
