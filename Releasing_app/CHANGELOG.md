@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v2.0.4
+
+### Miscellaneous
+
+- Merge pull request #8 from Malith077/versioning/release/2.0.3
+
+
 ## Releasing_app: v2.0.3
 
 ### Miscellaneous
