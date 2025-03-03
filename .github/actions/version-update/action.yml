@@ -1,0 +1,35 @@
+name: Version Update
+description: Update the version of the project
+
+inputs:
+  gh_token:
+    description: 'GitHub token'
+    required: true
+
+outputs:
+  version-suffix:
+    description: version suffix
+
+runs:
+  using: composite
+  steps:
+    - name: configure version suffix
+      id: configure
+      shell: bash
+      run: |
+        echo "GitHub event name: ${{ github.event_name }} : ${{ github.event.number}}"
+        if [ "${{ github.event_name}}" == "pull_request" ]; then
+          VERSION_SUFFIX="pr${{ github.event.number}}"
+        else
+          VERSION_SUFFIX="alpha"
+        fi
+        echo "VERSION_SUFFIX=$VERSION_SUFFIX" >> $GITHUB_ENV
+    
+    - id: Update
+      working-directory: .github/actions/versioning
+      shell: bash
+      run: |
+        git fetch --tags
+        npm run version:update -- --suffix=$VERSION_SUFFIX
+      env:
+        GITHUB_TOKEN: ${{ inputs.gh_token }}
