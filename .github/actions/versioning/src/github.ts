@@ -291,11 +291,11 @@ export async function closeExistingReleaseCandidatePR(previousMajor: number): Pr
 			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
 			console.log("match", match);
 			if (match) {
-			  const branchVersion = match[1];
-			  
-			  return semver.major(branchVersion) === previousMajor;
-			}
-			return false;
+				const branchVersion = match[1];
+				// Change this equality check to <=
+				return semver.major(branchVersion) <= previousMajor;
+			  }
+			  return false;
 		  });
 		  if (prsToClose.length === 0) {
 			console.log("No outdated RC PRs to close.");

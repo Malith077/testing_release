@@ -31,7 +31,7 @@ import semver from "semver";
       console.log(
         `Detected major version bump: latest release ${latestReleaseTag} -> new version ${nextVersion}. Closing RC PRs for previous major (${latestMajor}).`
       );
-      await closeExistingReleaseCandidatePR(latestMajor);
+      await closeExistingReleaseCandidatePR(latestMajor - 1);
     } else {
       console.log("No major version bump detected based on latest release.");
     }
