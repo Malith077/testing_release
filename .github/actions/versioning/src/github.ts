@@ -116,25 +116,28 @@ function updatePullRequest(number: number, title: string, body: string) {
 
 function createOrUpdateLabel(name: string, color: string, description: string) {
 	return new Promise<void>((resolve, reject) => {
-		const args = [
-			"label",
-			"create",
-			name,
-			"--color",
-			color,
-			"--description",
-			description,
-			"--force",
-		];
-		execFile("gh", args, (err, stdout, stderr) => {
-			if (err) {
-				reject(new Error(stderr || err.message));
-			} else {
-				resolve();
-			}
-		});
+	  const args = [
+		"label",
+		"create",
+		name,
+		"--color",
+		color,
+		"--description",
+		description,
+		"--force",
+	  ];
+	  execFile("gh", args, (err, stdout, stderr) => {
+		if (err) {
+		  console.error("Warning: Could not create/update label:", stderr || err.message);
+		  // Optionally, resolve instead of rejecting if you want to continue without failing.
+		  return resolve();
+		} else {
+		  resolve();
+		}
+	  });
 	});
-}
+  }
+  
 
 export async function createOrUpdatePullRequest(
 	headRef: string,
