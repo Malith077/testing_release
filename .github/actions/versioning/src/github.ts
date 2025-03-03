@@ -263,8 +263,6 @@ export function dispatchWorkflow(workflowName: string) {
 }
 
 
-import { execFile } from "child_process";
-
 export async function closeExistingReleaseCandidatePR(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     // List open PRs with the "release-candidate" label.
