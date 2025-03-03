@@ -262,56 +262,74 @@ export function dispatchWorkflow(workflowName: string) {
 	});
 }
 
-
-export async function closeExistingReleaseCandidatePR(): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    // List open PRs with the "release-candidate" label.
-    execFile(
-      "gh",
-      [
-        "pr",
-        "list",
-        "--state",
-        "open",
-        "--label",
-        "release-candidate",
-        "--json",
-        "number",
-        "--jq",
-        ".[0].number"
-      ],
-      (err, stdout, stderr) => {
-        if (err) {
-          console.error("Error listing RC PRs:", stderr);
-          // If there's an error (or no PR found), simply resolve.
-          return resolve();
-        }
-        const prNumber = stdout.trim();
-        if (prNumber) {
-          console.log("Closing existing release candidate PR:", prNumber);
-          execFile(
-            "gh",
-            [
-              "pr",
-              "close",
-              prNumber,
-              "--delete-branch",
-              "-c",
-              "Closing outdated RC due to major version update"
-            ],
-            (err2, stdout2, stderr2) => {
-              if (err2) {
-                console.error("Error closing RC PR:", stderr2);
-                return reject(err2);
-              }
-              resolve();
-            }
-          );
-        } else {
-          // No RC PR found.
-          resolve();
-        }
-      }
-    );
-  });
-}
+export async function closeExistingReleaseCandidatePR(newMajor: number): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+	  // List open PRs with the "release-candidate" label and include their branch names.
+	  execFile(
+		"gh",
+		[
+		  "pr",
+		  "list",
+		  "--state", "open",
+		  "--label", "release-candidate",
+		  "--json", "number,headRefName"
+		],
+		(err, stdout, stderr) => {
+		  if (err) {
+			console.error("Error listing RC PRs:", stderr);
+			return resolve();
+		  }
+		  let prs;
+		  try {
+			prs = JSON.parse(stdout) as Array<{ number: number; headRefName: string }>;
+		  } catch (parseError) {
+			console.error("Error parsing RC PR list:", parseError);
+			return resolve();
+		  }
+		  // Filter PRs whose branch major version is less than the new major.
+		  const prsToClose = prs.filter(pr => {
+			// Expect branch name format like "versioning/release/X.Y.Z"
+			const match = pr.headRefName.match(/versioning\/release\/(\d+)\./);
+			if (match) {
+			  const branchMajor = parseInt(match[1], 10);
+			  return branchMajor < newMajor;
+			}
+			return false;
+		  });
+  
+		  if (prsToClose.length === 0) {
+			console.log("No outdated RC PRs to close.");
+			return resolve();
+		  }
+  
+		  // Close each outdated RC PR.
+		  let closedCount = 0;
+		  prsToClose.forEach(pr => {
+			execFile(
+			  "gh",
+			  [
+				"pr",
+				"close",
+				pr.number.toString(),
+				"--delete-branch",
+				"-c",
+				"Closing outdated RC due to major version update"
+			  ],
+			  (err2, stdout2, stderr2) => {
+				if (err2) {
+				  console.error(`Error closing RC PR ${pr.number}:`, stderr2);
+				} else {
+				  console.log(`Closed RC PR ${pr.number} (branch ${pr.headRefName}).`);
+				}
+				closedCount++;
+				if (closedCount === prsToClose.length) {
+				  resolve();
+				}
+			  }
+			);
+		  });
+		}
+	  );
+	});
+  }
+  
