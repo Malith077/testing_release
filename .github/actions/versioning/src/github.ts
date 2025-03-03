@@ -258,3 +258,59 @@ export function dispatchWorkflow(workflowName: string) {
 		});
 	});
 }
+
+
+import { execFile } from "child_process";
+
+export async function closeExistingReleaseCandidatePR(): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    // List open PRs with the "release-candidate" label.
+    execFile(
+      "gh",
+      [
+        "pr",
+        "list",
+        "--state",
+        "open",
+        "--label",
+        "release-candidate",
+        "--json",
+        "number",
+        "--jq",
+        ".[0].number"
+      ],
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error("Error listing RC PRs:", stderr);
+          // If there's an error (or no PR found), simply resolve.
+          return resolve();
+        }
+        const prNumber = stdout.trim();
+        if (prNumber) {
+          console.log("Closing existing release candidate PR:", prNumber);
+          execFile(
+            "gh",
+            [
+              "pr",
+              "close",
+              prNumber,
+              "--delete-branch",
+              "-c",
+              "Closing outdated RC due to major version update"
+            ],
+            (err2, stdout2, stderr2) => {
+              if (err2) {
+                console.error("Error closing RC PR:", stderr2);
+                return reject(err2);
+              }
+              resolve();
+            }
+          );
+        } else {
+          // No RC PR found.
+          resolve();
+        }
+      }
+    );
+  });
+}
