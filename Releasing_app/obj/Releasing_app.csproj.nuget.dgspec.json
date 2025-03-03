@@ -5,7 +5,7 @@
   },
   "projects": {
     "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj": {
-      "version": "4.0.3",
+      "version": "5.0.3",
       "restore": {
         "projectUniqueName": "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj",
         "projectName": "Releasing_app",
