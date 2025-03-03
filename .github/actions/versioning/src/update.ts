@@ -1,51 +1,52 @@
-import { exportVariable } from "@actions/core";
+import { createOrUpdatePullRequest, closeExistingReleaseCandidatePR } from "./github";
+import { setOutput } from "@actions/core";
 import { getChangeDetails } from "./changes";
-import { getWorkspaceVersion, updateAllWorkspaces } from "./workspace";
-import { getRepoPath } from "./git";
-
-// Regular expression to extract a version suffix from command-line arguments
-const VERSION_SUFFIX_EXPRESSION = /^--suffix=(?<suffix>[^\s]+)$/;
-
-function getVersionSuffix(): string | undefined {
-	const arg = process.argv
-		.slice(2)
-		.find((arg) => VERSION_SUFFIX_EXPRESSION.test(arg));
-	const suffix = arg?.match(VERSION_SUFFIX_EXPRESSION)?.groups?.suffix;
-	return arg?.match(VERSION_SUFFIX_EXPRESSION)?.groups?.suffix;
-}
+import { updateAllProjects } from "./workspace";
+import semver from "semver";
 
 (async () => {
-	const changeDetails = await getChangeDetails(true);
-	if (!changeDetails) {
-		console.log("No changes detected.");
-		return;
-	}
+  const changeDetails = await getChangeDetails(true);
+  if (!changeDetails) {
+    console.log("No changes found");
+    return;
+  }
 
-	const versionSuffix = getVersionSuffix() ?? "";
+  await updateAllProjects(changeDetails);
 
-	await updateAllWorkspaces(changeDetails, versionSuffix);
+  // Compare versions using semver to detect a major bump.
+  const currentVersion = changeDetails.repository.change.version;
+  const nextVersion = changeDetails.repository.change.nextVersion;
+  const isMajorBump =
+    nextVersion && semver.major(nextVersion) > semver.major(currentVersion);
 
-	const rootPath = await getRepoPath();
+  if (isMajorBump) {
+    console.log(
+      `Detected major version bump: ${currentVersion} -> ${nextVersion}. Closing existing RC PR.`
+    );
+    // Call the new function to close any open release candidate PR.
+    await closeExistingReleaseCandidatePR();
+  }
 
-	const Releasing_appChange = changeDetails.changes.find(
-		(change) =>
-			change.location.startsWith("Releasing_app") &&
-			change.versionType !== "none"
-	);
+  await createOrUpdatePullRequest(
+    `versioning/release/${nextVersion}`,
+    `chore: release ${nextVersion}`,
+    changeDetails.changelog
+  );
 
-	const Releasing_appVersion = Releasing_appChange
-		? await getWorkspaceVersion(rootPath, Releasing_appChange.location)
-		: await getWorkspaceVersion(rootPath, "Releasing_app");
+  if (
+    nextVersion &&
+    changeDetails.repository.change.version !== nextVersion
+  ) {
+    setOutput("next-version", nextVersion);
+  }
 
-	if (Releasing_appVersion) {
-		// Export the version info as an environment variable named "reverse-proxy"
-		exportVariable("Releasing_app", JSON.stringify(Releasing_appVersion));
-		console.log(
-			`Exported Releasing_app version: ${JSON.stringify(
-				Releasing_appVersion
-			)}`
-		);
-	} else {
-		console.log("Reverse-proxy version not found.");
-	}
+  setOutput("changelog", changeDetails.changelog);
+  setOutput(
+    "updated-projects",
+    changeDetails.changes.map((change) => ({
+      name: change.name,
+      location: change.location,
+      version: change.version,
+    }))
+  );
 })();
