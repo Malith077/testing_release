@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v2.0.3
+
+### Miscellaneous
+
+- Changing funtions
+
+
 ## Releasing_app: v1.0.2
 
 ### Miscellaneous
