@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Releasing_app", "Releasing_app\Releasing_app.csproj", "{4466726F-E532-4DCF-B097-88FB4C8FCBBB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Releasing_app_xPlugin", "Releasing_app_xPlugin\Releasing_app_xPlugin.csproj", "{FD8D842F-E946-4AB3-BBD9-1B9AF2501D75}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{4466726F-E532-4DCF-B097-88FB4C8FCBBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4466726F-E532-4DCF-B097-88FB4C8FCBBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4466726F-E532-4DCF-B097-88FB4C8FCBBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD8D842F-E946-4AB3-BBD9-1B9AF2501D75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD8D842F-E946-4AB3-BBD9-1B9AF2501D75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD8D842F-E946-4AB3-BBD9-1B9AF2501D75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD8D842F-E946-4AB3-BBD9-1B9AF2501D75}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

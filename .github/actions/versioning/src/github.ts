@@ -263,6 +263,7 @@ export function dispatchWorkflow(workflowName: string) {
 }
 
 export async function closeExistingReleaseCandidatePR(previousMajor: number): Promise<void> {
+	console.log(`Closing outdated RC PRs for previous major version ${previousMajor}.`);
 	return new Promise<void>((resolve, reject) => {
 	  execFile(
 		"gh",
@@ -288,11 +289,13 @@ export async function closeExistingReleaseCandidatePR(previousMajor: number): Pr
 		  // Filter PRs whose branch name indicates a version with the previous major.
 		  const prsToClose = prs.filter(pr => {
 			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
+			console.log("match", match);
 			if (match) {
-			  const branchVersion = match[1];
-			  return semver.major(branchVersion) === previousMajor;
-			}
-			return false;
+				const branchVersion = match[1];
+				// Change this equality check to <=
+				return semver.major(branchVersion) <= previousMajor;
+			  }
+			  return false;
 		  });
 		  if (prsToClose.length === 0) {
 			console.log("No outdated RC PRs to close.");
