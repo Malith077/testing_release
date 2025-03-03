@@ -68,7 +68,7 @@ export async function updateProjectVersion(
 	newVersion: string,
 	versionSuffix: string
 ): Promise<void> {
-	const content = await readFile(projectPath, "utf-8");
+	const content = await readFilePromise(projectPath, "utf-8");
 	const versionRegex = /<Version>(.*?)<\/Version>/;
 	let newContent: string;
 	if (versionRegex.test(content)) {
