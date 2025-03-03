@@ -26,7 +26,7 @@ jobs:
         if: "${{ !contains(github.event.pull_request.labels.*.name, 'release-candidate') }}"
         uses: ./.github/actions/version-update
         with:
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          gh_token: ${{ secrets.MY_PAT_TOKEN }}
 
 
       - name: setup DotNet
