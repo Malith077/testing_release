@@ -25,6 +25,8 @@ import semver from "semver";
     );
     // Call the new function to close any open release candidate PR.
     await closeExistingReleaseCandidatePR();
+  } else {
+	console.log("No major version bump detected.");
   }
 
   await createOrUpdatePullRequest(
