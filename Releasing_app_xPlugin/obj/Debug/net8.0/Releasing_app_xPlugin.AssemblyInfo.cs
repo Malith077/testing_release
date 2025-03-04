@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Releasing_app_xPlugin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5e3c63929940b1d538dbd82a353eb45bba2a8da5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cc8f6e86d798bb18874148270dd280fb675116de")]
 [assembly: System.Reflection.AssemblyProductAttribute("Releasing_app_xPlugin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Releasing_app_xPlugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
