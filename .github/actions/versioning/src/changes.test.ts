@@ -1,140 +1,193 @@
-// import { describe, test, expect, vi, beforeEach } from 'vitest';
-// import { getChangeDetails } from './changes'; // Adjust the import path
-// import type { DotnetProject } from './dotnet';
-// import path from 'path';
-// import semver from 'semver';
 
-// // Mock external dependencies
-// vi.mock('./git', () => ({
-//   getCommits: vi.fn(),
-//   getRepoPath: vi.fn(),
-// }));
+import { describe, it, expect, beforeEach, vi } from "vitest";
+// Also import the mocked functions so we can set their implementations.
+import { getRepoPath, getCommits } from "./git";
+import { getProjects } from "./dotnet";
+import { getLatestRelease } from "./github";
+import {
+	getVersionType,
+	getVersionTypeNumber,
+	getVersionTypeFromNumber,
+	parseConventionalCommit
+} from "./conventional-commits";
+import { formatLocalChangelogAsMarkdown } from "./changelog";
 
-// vi.mock('./dotnet', () => ({
-//   getProjects: vi.fn(),
-// }));
+// Mock the git module.
+vi.mock("./git", () => ({
+	getRepoPath: vi.fn(),
+	getCommits: vi.fn()
+}));
 
-// vi.mock('./github', () => ({
-//   getLatestRelease: vi.fn(),
-// }));
+// Mock the dotnet module.
+vi.mock("./dotnet", () => ({
+	getProjects: vi.fn()
+}));
 
-// // Mock semver.inc to control version increments in tests
-// vi.mock('semver', () => ({
-//   inc: vi.fn(),
-// }));
+// Mock the github module.
+vi.mock("./github", () => ({
+	getLatestRelease: vi.fn()
+}));
 
-// describe('getChangeDetails', () => {
-//   beforeEach(() => {
-//     vi.resetAllMocks();
-//     vi.mocked(getRepoPath).mockResolvedValue('/fake/repo');
-//     vi.mocked(getLatestRelease).mockResolvedValue('v1.0.0');
-//     vi.mocked(semver.inc).mockImplementation((version, type) => {
-//       if (version === '1.0.0') {
-//         if (type === 'patch') return '1.0.1';
-//         if (type === 'minor') return '1.1.0';
-//         if (type === 'major') return '2.0.0';
-//       }
-//       return null;
-//     });
-//   });
+// Mock the conventional-commits module.
+vi.mock("./conventional-commits", () => ({
+	getVersionType: vi.fn(),
+	getVersionTypeNumber: vi.fn(),
+	getVersionTypeFromNumber: vi.fn(),
+	parseConventionalCommit: vi.fn()
+}));
 
-//   test('returns undefined when no projects are found', async () => {
-//     vi.mocked(getProjects).mockResolvedValue([]);
-//     const result = await getChangeDetails(true);
-//     expect(result).toBeUndefined();
-//   });
+// Mock the utils module.
+vi.mock("./util/utils", () => ({
+	createMap: vi.fn(),
+	groupBy: vi.fn(),
+	// For maxReducer, we simply return a function that picks the maximum numeric value.
+	maxReducer: vi.fn((fn: any) => (a: number, b: any) => Math.max(a, fn(b))),
+	// A simple sorter by commit date.
+	sortComparer: vi.fn(() => (a: any, b: any) => a.date.localeCompare(b.date))
+}));
 
-//   test('returns changes for root project with a feature commit', async () => {
-//     const mockProject: DotnetProject = {
-//       name: 'RootProject',
-//       path: path.join('/fake/repo', 'RootProject.csproj'),
-//       version: '1.0.0',
-//     };
-//     vi.mocked(getProjects).mockResolvedValue([mockProject]);
-//     vi.mocked(getCommits).mockResolvedValue([
-//       {
-//         hash: '123',
-//         message: 'feat: new feature',
-//         date: new Date(),
-//         author: 'test',
-//       },
-//     ]);
+// Mock the changelog module.
+vi.mock("./changelog", () => ({
+	formatLocalChangelogAsMarkdown: vi.fn()
+}));
 
-//     const result = await getChangeDetails(true);
-//     expect(result).toBeDefined();
-//     expect(result?.repository.change.versionType).toBe('minor');
-//     expect(result?.repository.change.nextVersion).toBe('1.1.0');
-//     expect(result?.changelog).toContain('RootProject: v1.1.0');
-//     expect(result?.changelog).toContain('### Features');
-//   });
+import { getChangeDetails } from "./changes";
 
-//   test('does not bump version when bumpVersion is false', async () => {
-//     const mockProject: DotnetProject = {
-//       name: 'RootProject',
-//       path: path.join('/fake/repo', 'RootProject.csproj'),
-//       version: '1.0.0',
-//     };
-//     vi.mocked(getProjects).mockResolvedValue([mockProject]);
-//     vi.mocked(getCommits).mockResolvedValue([
-//       { hash: '1', message: 'feat: new', date: new Date(), author: 'test' },
-//     ]);
 
-//     const result = await getChangeDetails(false);
-//     expect(result?.repository.change.nextVersion).toBe('1.0.0');
-//   });
 
-//   test('includes multiple projects in changelog', async () => {
-//     const rootProject: DotnetProject = {
-//       name: 'Root',
-//       path: path.join('/fake/repo', 'Root.csproj'),
-//       version: '1.0.0',
-//     };
-//     const otherProject: DotnetProject = {
-//       name: 'Other',
-//       path: path.join('/fake/repo', 'src', 'Other', 'Other.csproj'),
-//       version: '2.0.0',
-//     };
-//     vi.mocked(getProjects).mockResolvedValue([rootProject, otherProject]);
-//     vi.mocked(getCommits)
-//       .mockResolvedValueOnce([ // Root project commits
-//         { hash: '1', message: 'fix: a bug', date: new Date(), author: 'test' },
-//       ])
-//       .mockResolvedValueOnce([ // Other project commits
-//         { hash: '2', message: 'feat!: breaking change', date: new Date(), author: 'test' },
-//       ]);
+// Reset mocks before each test.
+beforeEach(() => {
+	vi.resetAllMocks();
+});
 
-//     const result = await getChangeDetails(true);
-//     expect(result?.changes).toHaveLength(1);
-//     expect(result?.changes[0].name).toBe('Other');
-//     expect(result?.changelog).toContain('Other: v3.0.0');
-//     expect(result?.changelog).toContain('### Breaking Changes');
-//   });
+describe("getChangeDetails", () => {
+	const rootPath = "/repo";
 
-//   test('returns undefined when no changes exist', async () => {
-//     const mockProject: DotnetProject = {
-//       name: 'RootProject',
-//       path: path.join('/fake/repo', 'RootProject.csproj'),
-//       version: '1.0.0',
-//     };
-//     vi.mocked(getProjects).mockResolvedValue([mockProject]);
-//     vi.mocked(getCommits).mockResolvedValue([
-//       { hash: '1', message: 'chore: docs', date: new Date(), author: 'test' },
-//     ]);
+	it("returns undefined when no projects are found", async () => {
+		(getRepoPath as any).mockResolvedValue(rootPath);
+		(getProjects as any).mockResolvedValue([]);
 
-//     const result = await getChangeDetails(true);
-//     expect(result).toBeUndefined();
-//   });
-// });
+		const result = await getChangeDetails(true);
+		expect(result).toBeUndefined();
+	});
 
-// describe('getRootProject', () => {
-//   test('selects project closest to repo root', () => {
-//     const rootPath = path.join('/fake/repo');
-//     const projects: DotnetProject[] = [
-//       { path: path.join(rootPath, 'src', 'A', 'A.csproj'), name: 'A', version: '1.0.0' },
-//       { path: path.join(rootPath, 'B.csproj'), name: 'B', version: '1.0.0' },
-//       { path: path.join(rootPath, 'src', 'C', 'C.csproj'), name: 'C', version: '1.0.0' },
-//     ];
-//     const rootProject = getRootProject(projects, rootPath);
-//     expect(rootProject?.name).toBe('B');
-//   });
-// });
+	it("returns undefined when no changes are found (all versionType 'none')", async () => {
+		(getRepoPath as any).mockResolvedValue(rootPath);
+		// Provide one project.
+		const project = {
+			name: "ProjectA",
+			path: `${rootPath}/ProjectA.csproj`,
+			version: "1.0.0"
+		};
+		(getProjects as any).mockResolvedValue([project]);
+		// Simulate a latest release tag.
+		(getLatestRelease as any).mockResolvedValue("v0.9.0");
+		// Simulate no commits (thus no conventional commit bumps).
+		(getCommits as any).mockResolvedValue([]);
+
+		// Set conventional-commits mocks so that the computed bump is "none".
+		(parseConventionalCommit as any).mockReturnValue({});
+		(getVersionType as any).mockReturnValue("none");
+		(getVersionTypeNumber as any).mockReturnValue(0);
+		(getVersionTypeFromNumber as any).mockReturnValue("none");
+		(formatLocalChangelogAsMarkdown as any).mockReturnValue("Changelog");
+
+		const result = await getChangeDetails(true);
+		expect(result).toBeUndefined();
+	});
+
+	it("returns change details when changes are found with bumpVersion true", async () => {
+		(getRepoPath as any).mockResolvedValue(rootPath);
+		// Define two projects:
+		// The root project is the one closest to the repo root.
+		const rootProject = {
+			name: "RootProject",
+			path: `${rootPath}/RootProject.csproj`,
+			version: "1.0.0"
+		};
+		const otherProject = {
+			name: "OtherProject",
+			path: `${rootPath}/sub/OtherProject.csproj`,
+			version: "2.0.0"
+		};
+		(getProjects as any).mockResolvedValue([rootProject, otherProject]);
+		(getLatestRelease as any).mockResolvedValue("v0.9.0");
+
+		// Simulate one commit for each project.
+		const fakeCommit = {
+			date: "2023-01-01T00:00:00",
+			message: "feat: something",
+			sha: "abc",
+			author: "Tester"
+		};
+		(getCommits as any).mockResolvedValue([fakeCommit]);
+
+		// Simulate that each commit produces a "minor" bump.
+		(parseConventionalCommit as any).mockReturnValue({});
+		(getVersionType as any).mockReturnValue("minor");
+		(getVersionTypeNumber as any).mockReturnValue(1);
+		(getVersionTypeFromNumber as any).mockReturnValue("minor");
+		// Let the changelog formatter return a fixed string.
+		(formatLocalChangelogAsMarkdown as any).mockReturnValue("Changelog");
+
+		const result = await getChangeDetails(true);
+		expect(result).toBeDefined();
+		if (result) {
+			expect(result.rootPath).toBe(rootPath);
+			// The root project is chosen based on proximity.
+			expect(result.repository.change.name).toBe("RootProject");
+			expect(result.repository.change.version).toBe("1.0.0");
+			// With bumpVersion true, nextVersion is computed using semver.inc.
+			expect(result.repository.change.nextVersion).toBe("1.1.0");
+			expect(result.repository.change.changelog).toBe("## RootProject: v1.1.0\n\nChangelog");
+			// Only the non-root project appears in the changes list.
+			expect(result.changes).toHaveLength(1);
+			expect(result.changes[0].name).toBe("OtherProject");
+			expect(result.changes[0].version).toBe("2.0.0");
+			expect(result.changes[0].nextVersion).toBe("2.1.0");
+			expect(result.changes[0].changelog).toBe("## OtherProject: v2.1.0\n\nChangelog");
+			// The overall changelog is built from the changes.
+			expect(result.changelog).toContain("# Changes");
+		}
+	});
+
+	it("returns change details when changes are found with bumpVersion false", async () => {
+		(getRepoPath as any).mockResolvedValue(rootPath);
+		const rootProject = {
+			name: "RootProject",
+			path: `${rootPath}/RootProject.csproj`,
+			version: "1.0.0"
+		};
+		const otherProject = {
+			name: "OtherProject",
+			path: `${rootPath}/sub/OtherProject.csproj`,
+			version: "2.0.0"
+		};
+		(getProjects as any).mockResolvedValue([rootProject, otherProject]);
+		(getLatestRelease as any).mockResolvedValue("v0.9.0");
+
+		const fakeCommit = {
+			date: "2023-01-01T00:00:00",
+			message: "feat: something",
+			sha: "abc",
+			author: "Tester"
+		};
+		(getCommits as any).mockResolvedValue([fakeCommit]);
+
+		(parseConventionalCommit as any).mockReturnValue({});
+		(getVersionType as any).mockReturnValue("minor");
+		(getVersionTypeNumber as any).mockReturnValue(1);
+		(getVersionTypeFromNumber as any).mockReturnValue("minor");
+		(formatLocalChangelogAsMarkdown as any).mockReturnValue("Changelog");
+
+		const result = await getChangeDetails(false);
+		expect(result).toBeDefined();
+		if (result) {
+			// When bumpVersion is false, nextVersion remains the original version.
+			expect(result.repository.change.nextVersion).toBe("1.0.0");
+			expect(result.repository.change.changelog).toBe("## RootProject: v1.0.0\n\nChangelog");
+			expect(result.changes[0].nextVersion).toBe("2.0.0");
+			expect(result.changes[0].changelog).toBe("## OtherProject: v2.0.0\n\nChangelog");
+		}
+	});
+});
