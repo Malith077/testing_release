@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app_xPlugin: v5.0.10
+
+### Miscellaneous
+
+- Merge pull request #37 from Malith077/branch
+
+
 ## Releasing_app_xPlugin: v1.0.6
 
 ### Miscellaneous
