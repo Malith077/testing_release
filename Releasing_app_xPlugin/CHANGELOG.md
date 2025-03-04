@@ -1,5 +1,13 @@
 # Changelog
 
+## Releasing_app_xPlugin: v1.0.2
+
+### Miscellaneous
+
+- Release 5.0.5
+- Version write fix
+
+
 ## Releasing_app_xPlugin: v1.0.1
 
 ### Miscellaneous

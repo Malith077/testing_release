@@ -1,5 +1,13 @@
 # Changelog
 
+## Releasing_app: v5.0.6
+
+### Miscellaneous
+
+- Release 5.0.5
+- Version write fix
+
+
 ## Releasing_app: v5.0.5
 
 ### Miscellaneous
