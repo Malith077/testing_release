@@ -8,38 +8,45 @@ import { ChangeDetails, ProjectChangeInformation } from "./changes";
 export async function updateAllProjects(
 	changeDetails: ChangeDetails,
 	versionSuffix: string = ""
-): Promise<void> {
+  ): Promise<void> {
+	// Update the repository (root) change first
 	await applyProjectVersionChanges(
-		changeDetails.rootPath,
-		changeDetails.repository.change,
-		versionSuffix
+	  changeDetails.rootPath,
+	  changeDetails.repository.change,
+	  versionSuffix
 	);
-}
-
-async function applyProjectVersionChanges(
+  
+	// Then update every other project defined in projects.json
+	for (const projectChange of changeDetails.changes) {
+	  await applyProjectVersionChanges(
+		changeDetails.rootPath,
+		projectChange,
+		versionSuffix
+	  );
+	}
+  }
+  
+  async function applyProjectVersionChanges(
 	rootPath: string,
 	change: ProjectChangeInformation,
 	versionSuffix: string
-): Promise<void> {
+  ): Promise<void> {
 	const projectPath = path.join(rootPath, change.location);
-
+  
 	if (change.changelog) {
-		await createOrUpdateChangelogFile(projectPath, change.changelog);
+	  await createOrUpdateChangelogFile(projectPath, change.changelog);
 	}
-
+  
 	if (change.versionType !== "none" && change.nextVersion) {
-		const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
-		console.log("csprojFiles: ", csprojFiles);
-		if (csprojFiles.length > 0) {
-			const csprojPath = path.join(projectPath, csprojFiles[0]);
-			await updateProjectVersion(
-				csprojPath,
-				change.nextVersion,
-				versionSuffix
-			);
-		}
+	  const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
+	  console.log("csprojFiles: ", csprojFiles);
+	  if (csprojFiles.length > 0) {
+		// Update the first csproj file found in that project folder.
+		const csprojPath = path.join(projectPath, csprojFiles[0]);
+		await updateProjectVersion(csprojPath, change.nextVersion, versionSuffix);
+	  }
 	}
-}
+  }
 
 export async function getProjectVersion(
 	rootPath: string,
