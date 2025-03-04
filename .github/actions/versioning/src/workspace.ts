@@ -29,7 +29,7 @@ async function applyProjectVersionChanges(
 
 	if (change.versionType !== "none" && change.nextVersion) {
 		const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
-
+		console.log("csprojFiles: ", csprojFiles);
 		if (csprojFiles.length > 0) {
 			const csprojPath = path.join(projectPath, csprojFiles[0]);
 			await updateProjectVersion(
