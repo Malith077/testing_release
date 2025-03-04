@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj": {}
+    "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\Releasing_app_xPlugin.csproj": {}
   },
   "projects": {
-    "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj": {
-      "version": "5.0.4",
+    "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\Releasing_app_xPlugin.csproj": {
+      "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj",
-        "projectName": "Releasing_app",
-        "projectPath": "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj",
+        "projectUniqueName": "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\Releasing_app_xPlugin.csproj",
+        "projectName": "Releasing_app_xPlugin",
+        "projectPath": "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\Releasing_app_xPlugin.csproj",
         "packagesPath": "C:\\Users\\swini\\.nuget\\packages\\",
-        "outputPath": "E:\\workspace\\testing_release\\Releasing_app\\obj\\",
+        "outputPath": "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
