@@ -266,76 +266,82 @@ export function dispatchWorkflow(workflowName: string) {
  */
 export async function checkRCStatus(): Promise<void> {
 	try {
-		// Get the latest official release tag, e.g., "v5.0.4".
-		const latestReleaseTag = await execCommand("gh", [
+	  // Get the latest official release tag using "gh release list".
+	  const latestReleaseTag = await new Promise<string>((resolve, reject) => {
+		execFile(
+		  "gh",
+		  [
 			"release",
-			"view",
-			"--latest",
-			"--json",
-			"tagName",
-			"--jq",
-			".tagName",
-		]);
-		// Remove leading "v" if present.
-		const latestReleaseVersion = latestReleaseTag.startsWith("v")
-			? latestReleaseTag.slice(1)
-			: latestReleaseTag;
-		console.log(`Latest official release: ${latestReleaseTag} (${latestReleaseVersion})`);
-
-		// List all open PRs with the "release-candidate" label.
-		const prJson = await execCommand("gh", [
+			"list",
+			"--limit", "1",
+			"--json", "tagName",
+			"--jq", ".[0].tagName",
+		  ],
+		  (err, stdout, stderr) => {
+			if (err) {
+			  reject(stderr || err.message);
+			} else {
+			  resolve(stdout.trim());
+			}
+		  }
+		);
+	  });
+  
+	  // Remove leading "v" if present.
+	  const latestReleaseVersion = latestReleaseTag.startsWith("v")
+		? latestReleaseTag.slice(1)
+		: latestReleaseTag;
+	  console.log(`Latest official release: ${latestReleaseTag} (${latestReleaseVersion})`);
+  
+	  // List all open PRs with the "release-candidate" label.
+	  const prJson = await new Promise<string>((resolve, reject) => {
+		execFile(
+		  "gh",
+		  [
 			"pr",
 			"list",
-			"--state",
-			"open",
-			"--label",
-			"release-candidate",
-			"--json",
-			"headRefName",
-		]);
-		const prs = JSON.parse(prJson) as Array<{ headRefName: string }>;
-
-		// Filter PRs that are for a version less than or equal to the latest official release.
-		const blockingPRs = prs.filter(pr => {
-			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
-			if (match) {
-				const branchVersion = match[1];
-				// If the branch version is less than or equal to the latest official version, it's blocking.
-				return semver.lte(branchVersion, latestReleaseVersion);
-			}
-			return false;
-		});
-
-		if (blockingPRs.length > 0) {
-			console.error(
-				`Blocking RC PR(s) found for current release: ${blockingPRs
-					.map(pr => pr.headRefName)
-					.join(", ")}`
-			);
-			process.exit(1);
-		} else {
-			console.log("No blocking RC PRs found. Proceeding with release creation.");
-		}
-	} catch (error) {
-		console.error("Error checking RC status:", error);
-		process.exit(1);
-	}
-}
-
-// Helper: execute a command and return stdout as a trimmed string.
-function execCommand(cmd: string, args: string[]): Promise<string> {
-	return new Promise((resolve, reject) => {
-		execFile(cmd, args, (err, stdout, stderr) => {
+			"--state", "open",
+			"--label", "release-candidate",
+			"--json", "headRefName",
+		  ],
+		  (err, stdout, stderr) => {
 			if (err) {
-				reject(stderr || err.message);
+			  reject(stderr || err.message);
 			} else {
-				resolve(stdout.trim());
+			  resolve(stdout.trim());
 			}
-		});
-	});
-}
-
-// If this module is executed directly, check RC status.
-if (require.main === module) {
+		  }
+		);
+	  });
+	  const prs = JSON.parse(prJson) as Array<{ headRefName: string }>;
+  
+	  // Filter PRs whose branch version is less than or equal to the latest official version.
+	  const blockingPRs = prs.filter(pr => {
+		const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
+		if (match) {
+		  const branchVersion = match[1];
+		  return semver.lte(branchVersion, latestReleaseVersion);
+		}
+		return false;
+	  });
+  
+	  if (blockingPRs.length > 0) {
+		console.error(
+		  `Blocking RC PR(s) found for current release: ${blockingPRs
+			.map(pr => pr.headRefName)
+			.join(", ")}`
+		);
+		process.exit(1);
+	  } else {
+		console.log("No blocking RC PRs found. Proceeding with release creation.");
+	  }
+	} catch (error) {
+	  console.error("Error checking RC status:", error);
+	  process.exit(1);
+	}
+  }
+  
+  // If this module is executed directly, check RC status.
+  if (require.main === module) {
 	checkRCStatus();
-}
+  }
