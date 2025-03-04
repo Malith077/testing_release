@@ -36,7 +36,7 @@ describe('Git utility functions', () => {
       const formattedOutput = `${commit1}%%\n${commit2}%%\n`;
 
       // Mock execFile for git log
-      vi.spyOn(require('child_process'), 'execFile').mockImplementation((cmd, args, options, callback) => {
+      vi.spyOn(require('child_process'), 'execFile').mockImplementation((cmd: string, args: string[], options: any, callback: (error: Error | null, stdout: string, stderr: string) => void) => {
         // Validate command and range argument
         expect(cmd).toBe('git');
         expect(args).toContain('log');
