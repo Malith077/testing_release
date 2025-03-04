@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app_xPlugin: v1.0.3
+
+### Miscellaneous
+
+- Merge pull request #27 from Malith077/feat/feature9
+
+
 ## Releasing_app_xPlugin: v1.0.2
 
 ### Miscellaneous
