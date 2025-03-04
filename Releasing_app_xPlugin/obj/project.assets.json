@@ -12,7 +12,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "1.0.0",
+    "version": "1.0.4",
     "restore": {
       "projectUniqueName": "E:\\workspace\\testing_release\\Releasing_app_xPlugin\\Releasing_app_xPlugin.csproj",
       "projectName": "Releasing_app_xPlugin",
