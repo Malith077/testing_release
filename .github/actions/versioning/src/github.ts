@@ -56,11 +56,9 @@ export async function getLatestRelease() {
 					.sort((a, b) => {
 						const va = semver.coerce(a.tag_name)!;
 						const vb = semver.coerce(b.tag_name)!;
-
 						// reverse sort
 						return semver.compare(vb, va);
 					});
-
 				resolve(releases[0]?.tag_name);
 			}
 		});
@@ -116,28 +114,27 @@ function updatePullRequest(number: number, title: string, body: string) {
 
 function createOrUpdateLabel(name: string, color: string, description: string) {
 	return new Promise<void>((resolve, reject) => {
-	  const args = [
-		"label",
-		"create",
-		name,
-		"--color",
-		color,
-		"--description",
-		description,
-		"--force",
-	  ];
-	  execFile("gh", args, (err, stdout, stderr) => {
-		if (err) {
-		  console.error("Warning: Could not create/update label:", stderr || err.message);
-		  // Optionally, resolve instead of rejecting if you want to continue without failing.
-		  return resolve();
-		} else {
-		  resolve();
-		}
-	  });
+		const args = [
+			"label",
+			"create",
+			name,
+			"--color",
+			color,
+			"--description",
+			description,
+			"--force",
+		];
+		execFile("gh", args, (err, stdout, stderr) => {
+			if (err) {
+				console.error("Warning: Could not create/update label:", stderr || err.message);
+				// Continue without failing.
+				return resolve();
+			} else {
+				resolve();
+			}
+		});
 	});
-  }
-  
+}
 
 export async function createOrUpdatePullRequest(
 	headRef: string,
@@ -262,74 +259,83 @@ export function dispatchWorkflow(workflowName: string) {
 	});
 }
 
-export async function closeExistingReleaseCandidatePR(previousMajor: number): Promise<void> {
-	console.log(`Closing outdated RC PRs for previous major version ${previousMajor}.`);
-	return new Promise<void>((resolve, reject) => {
-	  execFile(
-		"gh",
-		[
-		  "pr",
-		  "list",
-		  "--state", "open",
-		  "--label", "release-candidate",
-		  "--json", "number,headRefName"
-		],
-		(err, stdout, stderr) => {
-		  if (err) {
-			console.error("Error listing RC PRs:", stderr);
-			return resolve();
-		  }
-		  let prs: Array<{ number: number; headRefName: string }>;
-		  try {
-			prs = JSON.parse(stdout);
-		  } catch (parseError) {
-			console.error("Error parsing RC PR list:", parseError);
-			return resolve();
-		  }
-		  // Filter PRs whose branch name indicates a version with the previous major.
-		  const prsToClose = prs.filter(pr => {
+/**
+ * Checks for blocking release-candidate PRs.
+ * A blocking RC PR is one whose branch version is less than or equal to the latest official release.
+ * Exits with error if blocking PRs exist.
+ */
+export async function checkRCStatus(): Promise<void> {
+	try {
+		// Get the latest official release tag, e.g., "v5.0.4".
+		const latestReleaseTag = await execCommand("gh", [
+			"release",
+			"view",
+			"--latest",
+			"--json",
+			"tagName",
+			"--jq",
+			".tagName",
+		]);
+		// Remove leading "v" if present.
+		const latestReleaseVersion = latestReleaseTag.startsWith("v")
+			? latestReleaseTag.slice(1)
+			: latestReleaseTag;
+		console.log(`Latest official release: ${latestReleaseTag} (${latestReleaseVersion})`);
+
+		// List all open PRs with the "release-candidate" label.
+		const prJson = await execCommand("gh", [
+			"pr",
+			"list",
+			"--state",
+			"open",
+			"--label",
+			"release-candidate",
+			"--json",
+			"headRefName",
+		]);
+		const prs = JSON.parse(prJson) as Array<{ headRefName: string }>;
+
+		// Filter PRs that are for a version less than or equal to the latest official release.
+		const blockingPRs = prs.filter(pr => {
 			const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
-			console.log("match", match);
 			if (match) {
 				const branchVersion = match[1];
-				// Change this equality check to <=
-				return semver.major(branchVersion) <= previousMajor;
-			  }
-			  return false;
-		  });
-		  if (prsToClose.length === 0) {
-			console.log("No outdated RC PRs to close.");
-			return resolve();
-		  }
-		  // Use Promise.all to attempt to close all PRs.
-		  Promise.all(
-			prsToClose.map(pr =>
-			  new Promise<void>(resolvePr => {
-				execFile(
-				  "gh",
-				  [
-					"pr",
-					"close",
-					pr.number.toString(),
-					"--delete-branch",
-					"-c",
-					"Closing outdated RC due to major version update"
-				  ],
-				  (err2, stdout2, stderr2) => {
-					if (err2) {
-					  console.error(`Error closing RC PR ${pr.number}:`, stderr2);
-					} else {
-					  console.log(`Closed RC PR ${pr.number} (branch ${pr.headRefName}).`);
-					}
-					// Resolve regardless of error to let all attempts complete.
-					resolvePr();
-				  }
-				);
-			  })
-			)
-		  ).then(() => resolve());
+				// If the branch version is less than or equal to the latest official version, it's blocking.
+				return semver.lte(branchVersion, latestReleaseVersion);
+			}
+			return false;
+		});
+
+		if (blockingPRs.length > 0) {
+			console.error(
+				`Blocking RC PR(s) found for current release: ${blockingPRs
+					.map(pr => pr.headRefName)
+					.join(", ")}`
+			);
+			process.exit(1);
+		} else {
+			console.log("No blocking RC PRs found. Proceeding with release creation.");
 		}
-	  );
+	} catch (error) {
+		console.error("Error checking RC status:", error);
+		process.exit(1);
+	}
+}
+
+// Helper: execute a command and return stdout as a trimmed string.
+function execCommand(cmd: string, args: string[]): Promise<string> {
+	return new Promise((resolve, reject) => {
+		execFile(cmd, args, (err, stdout, stderr) => {
+			if (err) {
+				reject(stderr || err.message);
+			} else {
+				resolve(stdout.trim());
+			}
+		});
 	});
-  }
-  
+}
+
+// If this module is executed directly, check RC status.
+if (require.main === module) {
+	checkRCStatus();
+}
