@@ -10,7 +10,7 @@ beforeEach(() => {
 // Helper to simulate execFile callback invocation
 function simulateExecFile(success: boolean, stdout = '', stderr = '') {
   return (cmd: string, args: string[], optionsOrCallback: any, maybeCallback?: any) => {
-    const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback;
+    const callback = (typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback) as (error: Error | null, stdout: string, stderr: string) => void;
     if (success) {
       callback(null, stdout, stderr);
     } else {
