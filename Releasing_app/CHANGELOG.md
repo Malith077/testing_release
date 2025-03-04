@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v5.0.10
+
+### Miscellaneous
+
+- Merge pull request #35 from Malith077/feat/feature10
+
+
 ## Releasing_app: v5.0.9
 
 ### Miscellaneous
