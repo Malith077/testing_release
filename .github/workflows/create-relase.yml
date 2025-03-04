@@ -20,19 +20,6 @@ jobs:
         with:
           fetch-depth: 200
 
-      - name: Check for open release candidate PRs
-        id: check_rc
-        run: |
-          echo "Checking for open release candidate PRs..."
-          RC_COUNT=$(gh pr list --state open --label "release-candidate" --json number --jq 'length')
-          echo "Found $RC_COUNT open release candidate PR(s)."
-          if [ "$RC_COUNT" -gt 0 ]; then
-            echo "There are open release candidate PR(s). Please merge them before creating a release."
-            exit 1
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.MY_PAT_TOKEN }}
-
       - name: Create release
         working-directory: .github/actions/versioning
         run: |
