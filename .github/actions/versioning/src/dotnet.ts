@@ -10,31 +10,6 @@ export type DotnetProject = {
 	path: string;
 };
 
-// export async function getProject(
-// 	rootPath: string
-// ): Promise<DotnetProject | undefined> {
-// 	const projectPath = path.join(
-// 		rootPath,
-// 		"Releasing_app",
-// 		"Releasing_app.csproj"
-// 	); // testing only - TODO: make this dynamic
-// 	if (!existsSync(projectPath)) {
-// 		return undefined;
-// 	}
-// 	try {
-// 		const content = await readFile(projectPath, "utf-8");
-// 		// Try to extract the AssemblyName and Version from the csproj file
-// 		const nameMatch = content.match(/<AssemblyName>(.*?)<\/AssemblyName>/);
-// 		const versionMatch = content.match(/<Version>(.*?)<\/Version>/);
-// 		const name = nameMatch ? nameMatch[1] : "Releasing_app";
-// 		const version = versionMatch ? versionMatch[1] : "1.0.0";
-// 		return { name, version, path: projectPath };
-// 	} catch (e) {
-// 		console.error("Error reading project file", e);
-// 		return undefined;
-// 	}
-// }
-
 export async function getProjects(rootPath: string): Promise<DotnetProject[]> {
 	// Use the imported JSON; if not available, default to single project "Releasing_app".
 	const projectsList: string[] = (projectsConfig && projectsConfig.projects) || ["Releasing_app"];
@@ -63,30 +38,26 @@ export async function getProjects(rootPath: string): Promise<DotnetProject[]> {
 	return projects.filter((p): p is DotnetProject => p !== undefined);
   }
 
-export async function updateProjectVersion(
+  export async function updateProjectVersion(
 	projectPath: string,
 	newVersion: string,
 	versionSuffix: string
-): Promise<void> {
+  ): Promise<void> {
 	const content = await readFilePromise(projectPath, "utf-8");
-	const versionRegex = /<Version>(.*?)<\/Version>/;
+	// Use a case-insensitive regex to match the <Version> tag.
+	const versionRegex = /<Version>(.*?)<\/Version>/i;
 	let newContent: string;
 	if (versionRegex.test(content)) {
-		newContent = content.replace(
-			versionRegex,
-			`<Version>${newVersion}${
-				versionSuffix ? "-" + versionSuffix : ""
-			}</Version>`
-		);
+	  newContent = content.replace(
+		versionRegex,
+		`<Version>${newVersion}${versionSuffix ? "-" + versionSuffix : ""}</Version>`
+	  );
 	} else {
-		// Insert the <Version> tag into the first <PropertyGroup>
-		newContent = content.replace(
-			/<PropertyGroup>/,
-			`<PropertyGroup>\n  <Version>${newVersion}${
-				versionSuffix ? "-" + versionSuffix : ""
-			}</Version>`
-		);
+	  // If the <Version> tag doesn't exist, insert it into the first <PropertyGroup>.
+	  newContent = content.replace(
+		/<PropertyGroup>/i,
+		`<PropertyGroup>\n  <Version>${newVersion}${versionSuffix ? "-" + versionSuffix : ""}</Version>`
+	  );
 	}
-
 	await writeFile(projectPath, newContent);
-}
+  }
