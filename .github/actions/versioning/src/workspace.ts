@@ -1,52 +1,96 @@
 import path from "path";
-import { glob, Glob } from "glob";
+import { glob } from "glob";
 import { existsSync, readFile } from "fs";
 import { createOrUpdateChangelogFile } from "./changelog";
 import { DotnetProject, updateProjectVersion } from "./dotnet";
 import { ChangeDetails, ProjectChangeInformation } from "./changes";
 
+/**
+ * Helper function that scans all csproj files under the provided project locations.
+ * - If any csproj file contains a <Version> tag, that version is used as the base.
+ * - If none are found, returns "1.0.0".
+ */
+async function determineBaseVersion(
+	rootPath: string,
+	projectLocations: string[]
+): Promise<string> {
+	for (const projectLocation of projectLocations) {
+		const projectPath = path.join(rootPath, projectLocation);
+		const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
+		if (csprojFiles.length > 0) {
+			const csprojPath = path.join(projectPath, csprojFiles[0]);
+			const content = await new Promise<string>((resolve, reject) => {
+				readFile(csprojPath, "utf-8", (err, data) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(data);
+					}
+				});
+			});
+			const versionMatch = content.match(/<Version>(.*?)<\/Version>/i);
+			if (versionMatch && versionMatch[1]) {
+				return versionMatch[1];
+			}
+		}
+	}
+	return "1.0.0";
+}
+
 export async function updateAllProjects(
 	changeDetails: ChangeDetails,
 	versionSuffix: string = ""
-  ): Promise<void> {
+): Promise<void> {
+	// Gather all project locations from the repository change and projects from projects.json
+	const projectLocations = [
+		changeDetails.repository.change.location,
+		...changeDetails.changes.map(change => change.location)
+	];
+	// Determine the base version from the csproj files
+	const baseVersion = await determineBaseVersion(changeDetails.rootPath, projectLocations);
+	console.log("Determined base version:", baseVersion);
+
 	// Update the repository (root) change first
 	await applyProjectVersionChanges(
-	  changeDetails.rootPath,
-	  changeDetails.repository.change,
-	  versionSuffix
+		changeDetails.rootPath,
+		changeDetails.repository.change,
+		versionSuffix,
+		baseVersion
 	);
-  
+
 	// Then update every other project defined in projects.json
 	for (const projectChange of changeDetails.changes) {
-	  await applyProjectVersionChanges(
-		changeDetails.rootPath,
-		projectChange,
-		versionSuffix
-	  );
+		await applyProjectVersionChanges(
+			changeDetails.rootPath,
+			projectChange,
+			versionSuffix,
+			baseVersion
+		);
 	}
-  }
-  
-  async function applyProjectVersionChanges(
+}
+
+async function applyProjectVersionChanges(
 	rootPath: string,
 	change: ProjectChangeInformation,
-	versionSuffix: string
-  ): Promise<void> {
+	versionSuffix: string,
+	baseVersion: string
+): Promise<void> {
 	const projectPath = path.join(rootPath, change.location);
-  
+
+	// Update the changelog if available.
 	if (change.changelog) {
-	  await createOrUpdateChangelogFile(projectPath, change.changelog);
+		await createOrUpdateChangelogFile(projectPath, change.changelog);
 	}
-  
-	if (change.versionType !== "none" && change.nextVersion) {
-	  const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
-	  console.log("csprojFiles: ", csprojFiles);
-	  if (csprojFiles.length > 0) {
-		// Update the first csproj file found in that project folder.
+
+	// Look for csproj files in the project folder.
+	const csprojFiles = await glob("**/*.csproj", { cwd: projectPath });
+	console.log("csprojFiles: ", csprojFiles);
+	if (csprojFiles.length > 0) {
+		// Update the first csproj file found with the base version and versionSuffix.
 		const csprojPath = path.join(projectPath, csprojFiles[0]);
-		await updateProjectVersion(csprojPath, change.nextVersion, versionSuffix);
-	  }
+		await updateProjectVersion(csprojPath, baseVersion, versionSuffix);
 	}
-  }
+}
 
 export async function getProjectVersion(
 	rootPath: string,
@@ -97,11 +141,21 @@ export async function updateAllWorkspaces(
 	changeDetails: ChangeDetails,
 	versionSuffix: string = ""
 ): Promise<void> {
+	// Gather all project locations
+	const projectLocations = [
+		changeDetails.repository.change.location,
+		...changeDetails.changes.map(change => change.location)
+	];
+	// Determine the base version from the csproj files
+	const baseVersion = await determineBaseVersion(changeDetails.rootPath, projectLocations);
+	console.log("Determined base version:", baseVersion);
+
 	// Update the repository (root) change first
 	await applyProjectVersionChanges(
 		changeDetails.rootPath,
 		changeDetails.repository.change,
-		versionSuffix
+		versionSuffix,
+		baseVersion
 	);
 
 	// Then update every other project that has changes
@@ -109,7 +163,8 @@ export async function updateAllWorkspaces(
 		await applyProjectVersionChanges(
 			changeDetails.rootPath,
 			change,
-			versionSuffix
+			versionSuffix,
+			baseVersion
 		);
 	}
 }
