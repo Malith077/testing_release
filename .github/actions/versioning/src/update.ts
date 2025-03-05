@@ -1,59 +1,48 @@
-import { createOrUpdatePullRequest, closeExistingReleaseCandidatePR, getLatestRelease } from "./github";
-import { setOutput } from "@actions/core";
+import { exportVariable } from "@actions/core";
 import { getChangeDetails } from "./changes";
-import { updateAllProjects } from "./workspace";
-import semver from "semver";
+import { getWorkspaceVersion, updateAllWorkspaces } from "./workspace";
+import { getRepoPath } from "./git";
+import projectDefinitions from "../projects/projects.json";
+const VERSION_SUFFIX_EXPRESSION = /^--suffix=(?<suffix>[^\s]+)$/;
+
+function getVersionSuffix(): string | undefined {
+	const arg = process.argv
+		.slice(2)
+		.find((arg) => VERSION_SUFFIX_EXPRESSION.test(arg));
+	return arg?.match(VERSION_SUFFIX_EXPRESSION)?.groups?.suffix;
+}
 
 (async () => {
-  const changeDetails = await getChangeDetails(true);
-  if (!changeDetails) {
-    console.log("No changes found");
-    return;
-  }
+	const changeDetails = await getChangeDetails(true);
+	if (!changeDetails) {
+		console.log("No changes detected.");
+		return;
+	}
 
-  await updateAllProjects(changeDetails);
+	const versionSuffix = getVersionSuffix() ?? "";
+	await updateAllWorkspaces(changeDetails, versionSuffix);
 
-  const nextVersion = changeDetails.repository.change.nextVersion;
-  if (!nextVersion) {
-    console.error("Next version not determined");
-    return;
-  }
+	const rootPath = await getRepoPath();
 
-  // Get the latest official release tag from GitHub.
-  const latestReleaseTag = await getLatestRelease();
-  if (!latestReleaseTag) {
-    console.log("No latest release found on GitHub; skipping RC cleanup.");
-  } else {
-    const latestMajor = semver.major(latestReleaseTag);
-    const newMajor = semver.major(nextVersion);
-    console.log(`Latest release: ${latestReleaseTag} (major: ${latestMajor}), new version: ${nextVersion} (major: ${newMajor})`);
-    if (newMajor > latestMajor) {
-      console.log(
-        `Detected major version bump: latest release ${latestReleaseTag} -> new version ${nextVersion}. Closing RC PRs for previous major (${latestMajor}).`
-      );
-      await closeExistingReleaseCandidatePR(latestMajor - 1);
-    } else {
-      console.log("No major version bump detected based on latest release.");
-    }
-  }
+	// Process each project from the config
+	for (const project of projectDefinitions.projects) {
+		const projectChange = changeDetails.changes.find(
+			(change) =>
+				change.location.startsWith(project) &&
+				change.versionType !== "none"
+		);
 
-  await createOrUpdatePullRequest(
-    `versioning/release/${nextVersion}`,
-    `chore: release ${nextVersion}`,
-    changeDetails.changelog
-  );
+		const projectVersion = projectChange
+			? await getWorkspaceVersion(rootPath, projectChange.location)
+			: await getWorkspaceVersion(rootPath, project);
 
-  if (nextVersion && changeDetails.repository.change.version !== nextVersion) {
-    setOutput("next-version", nextVersion);
-  }
-
-  setOutput("changelog", changeDetails.changelog);
-  setOutput(
-    "updated-projects",
-    changeDetails.changes.map((change) => ({
-      name: change.name,
-      location: change.location,
-      version: change.version,
-    }))
-  );
+		if (projectVersion) {
+			exportVariable(project, JSON.stringify(projectVersion));
+			console.log(
+				`Exported ${project} version: ${JSON.stringify(projectVersion)}`
+			);
+		} else {
+			console.log(`${project} version not found.`);
+		}
+	}
 })();
