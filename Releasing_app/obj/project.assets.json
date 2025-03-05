@@ -12,13 +12,13 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "5.0.8",
+    "version": "5.0.9",
     "restore": {
-      "projectUniqueName": "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj",
+      "projectUniqueName": "D:\\RELEASE\\testing_release\\Releasing_app\\Releasing_app.csproj",
       "projectName": "Releasing_app",
-      "projectPath": "E:\\workspace\\testing_release\\Releasing_app\\Releasing_app.csproj",
+      "projectPath": "D:\\RELEASE\\testing_release\\Releasing_app\\Releasing_app.csproj",
       "packagesPath": "C:\\Users\\swini\\.nuget\\packages\\",
-      "outputPath": "E:\\workspace\\testing_release\\Releasing_app\\obj\\",
+      "outputPath": "D:\\RELEASE\\testing_release\\Releasing_app\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
