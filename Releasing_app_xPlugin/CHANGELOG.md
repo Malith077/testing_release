@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app_xPlugin: v5.0.10
+
+### Miscellaneous
+
+- Merge 461d9af21602a0d99eddf195f969f3ac111b06ad into 1a58c19a4e3d11bd8a564ea3a4716f6cfa8e0d1d
+
+
 ## Releasing_app_xPlugin: v1.0.6
 
 ### Miscellaneous
