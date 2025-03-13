@@ -131,10 +131,9 @@ export async function getChangeDetails(
 	);
 
 	if (
-		otherProjects.length === 0 &&
 		rootProjectChange.versionType !== "none"
 	) {
-		actualChanges = [rootProjectChange];
+		actualChanges = [rootProjectChange, ...actualChanges];
 	}
 
 	if (actualChanges.length === 0) {
