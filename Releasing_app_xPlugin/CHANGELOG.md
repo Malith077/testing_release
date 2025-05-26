@@ -1,5 +1,22 @@
 # Changelog
 
+## Releasing_app_xPlugin: v5.3.0
+
+### Features
+
+- **update**: Feature 11
+
+### Miscellaneous
+
+- Release 5.0.10
+- Release 5.1.0
+- New Feature
+- Release 5.1.0
+- Release v5.2.0
+- Versioning
+- Refsctor
+
+
 ## Releasing_app_xPlugin: v5.2.0
 
 ### Features
