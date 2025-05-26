@@ -1,5 +1,16 @@
 # Changelog
 
+## Releasing_app_xPlugin: v5.2.2
+
+### Bug Fixes
+
+- Changes
+
+### Miscellaneous
+
+- Release v5.3.0
+
+
 ## Releasing_app_xPlugin: v5.2.1
 
 ### Bug Fixes
