@@ -35,6 +35,6 @@ jobs:
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
-          pnpm run version:release-candidate
+          npm run version:release-candidate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
