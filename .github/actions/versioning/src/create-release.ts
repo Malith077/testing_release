@@ -21,7 +21,6 @@ import { existsSync } from "fs";
   await updateAllProjects(changeDetails);
 
   // Create a combined changelog that aggregates repository-level and project-specific changes.
-  const combinedChangelog = `# Changes\n\n${changeDetails.changelog}`;
 
   // Use the repository change as the release version.
   const releaseVersion = changeDetails.repository.change.nextVersion;
@@ -32,11 +31,11 @@ import { existsSync } from "fs";
 
   // Create or update the GitHub release with the combined changelog.
   // Setting draft to false so that the release is published.
-  await createOrUpdateRelease(releaseVersion, combinedChangelog, false);
+  await createOrUpdateRelease(releaseVersion, changeDetails.changelog, false);
 
   // Set outputs for downstream steps (if needed)
   await setOutput("version", releaseVersion);
-  await setOutput("changelog", combinedChangelog);
+  await setOutput("changelog", changeDetails.changelog);
 
   console.log(`Release ${releaseVersion} created/updated successfully.`);
 })();
