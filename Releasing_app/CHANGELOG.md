@@ -1,5 +1,16 @@
 # Changelog
 
+## Releasing_app: v5.3.0
+
+### Features
+
+- New feature added - sample 1
+
+### Bug Fixes
+
+- Changes
+
+
 ## Releasing_app: v5.2.2
 
 ### Miscellaneous
