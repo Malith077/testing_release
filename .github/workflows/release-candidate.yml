@@ -1,4 +1,4 @@
-content - name: Release Candidate
+name: Release Candidate
 
 on:
   push:
