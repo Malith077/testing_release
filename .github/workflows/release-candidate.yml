@@ -1,4 +1,4 @@
-name: Release Candidate
+content - name: Release Candidate
 
 on:
   push:
@@ -6,33 +6,38 @@ on:
       - main
 
 permissions:
-  contents: write
   id-token: write
+  contents: write
   packages: write
+  issues: write
   pull-requests: write
-  repository-projects: write
+  repository-projects: read
 
 jobs:
   versioning:
-    name: Versioning
-    runs-on: ubuntu-latest
-    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release v')}}"
+    name: Create Release Candidate
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release v') }}"
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         id: checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 200
-      
-      - name: Release candidate
-        working-directory: .github/actions/versioning
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+
+      - name: Create Release Candidate
+        id: create-release-candidate
+        working-directory: .github/actions/semantic-versioning
+        shell: bash
         run: |
           git fetch --tags
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          npm run version:release-candidate
-        env:
-          GH_TOKEN: ${{ secrets.MY_PAT_TOKEN }}
 
-          
+          pnpm run version:release-candidate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

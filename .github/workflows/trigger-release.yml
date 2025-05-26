@@ -1,0 +1,27 @@
+name: Trigger Release process
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  release:
+    name: Trigger release
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release-candidate')
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trigger release
+        run: |
+          gh workflow run "Create Release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
