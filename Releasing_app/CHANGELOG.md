@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v5.5.0
+
+### Features
+
+- Only main app updated
+
+
 ## Releasing_app: v5.4.0
 
 ### Features
