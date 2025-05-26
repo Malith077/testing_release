@@ -13,7 +13,7 @@ import { updateAllProjects } from './workspace';
 
 	await createOrUpdatePullRequest(
 		`versioning/release/${changeDetails.repository.change.nextVersion}`,
-		`chore: release ${changeDetails.repository.change.nextVersion}`,
+		`chore: release v${changeDetails.repository.change.nextVersion}`,
 		changeDetails.changelog,
 	);
 

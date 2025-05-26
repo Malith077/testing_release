@@ -6,12 +6,10 @@ import { updateAllProjects } from "./workspace";
 import { getChangeDetails } from "./changes";
 import { setOutput } from "@actions/core";
 import { existsSync } from "fs";
-import { checkRCStatus } from "./github";
 
 (async () => {
   // First, check for blocking release-candidate PRs.
   // This call will exit the process with a non-zero code if a blocking RC PR exists.
-  await checkRCStatus();
 
   const changeDetails = await getChangeDetails(false); // false: we are not bumping version here, just creating release.
   if (!changeDetails) {
