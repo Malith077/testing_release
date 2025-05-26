@@ -26,6 +26,9 @@ jobs:
         with:
           fetch-depth: 200
 
+      - name: echo the fucking thing
+        run: echo "${{ github.event.head_commit.message }}"
+
       - name: Create Release Candidate
         id: create-release-candidate
         working-directory: .github/actions/versioning
