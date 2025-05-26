@@ -11,7 +11,7 @@
     "/Users/prabuddhamalith/.nuget/packages/": {}
   },
   "project": {
-    "version": "5.0.9",
+    "version": "5.2.0",
     "restore": {
       "projectUniqueName": "/Users/prabuddhamalith/Desktop/work/testing_release/Releasing_app_xPlugin/Releasing_app_xPlugin.csproj",
       "projectName": "Releasing_app_xPlugin",
