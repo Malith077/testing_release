@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Release Candidate
         id: create-release-candidate
-        working-directory: .github/actions/semantic-versioning
+        working-directory: .github/actions/versioning
         shell: bash
         run: |
           git fetch --tags
