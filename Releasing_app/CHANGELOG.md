@@ -1,5 +1,13 @@
 # Changelog
 
+## Releasing_app: v5.2.1
+
+### Miscellaneous
+
+- New one
+- Merge pull request #59 from Malith077/feature/test/3
+
+
 ## Releasing_app: v5.2.0
 
 ### Features
