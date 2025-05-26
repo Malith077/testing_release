@@ -16,7 +16,7 @@ permissions:
 jobs:
   versioning:
     name: Create Release Candidate
-    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release v') }}"
+    if: "${{ !contains(github.event.head_commit.message, 'chore: release v') }}"
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
 
     steps:
