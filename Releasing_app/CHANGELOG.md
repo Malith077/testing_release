@@ -1,5 +1,13 @@
 # Changelog
 
+## Releasing_app: v5.2.2
+
+### Miscellaneous
+
+- Big feature
+- Merge pull request #63 from Malith077/feature/test/3
+
+
 ## Releasing_app: v5.2.1
 
 ### Miscellaneous
