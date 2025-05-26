@@ -1,5 +1,23 @@
 # Changelog
 
+## Releasing_app: v5.2.0
+
+### Features
+
+- **update**: Feature 11
+
+### Miscellaneous
+
+- Release 5.0.10
+- Release 5.1.0
+- New Feature
+- Release 5.1.0
+- Versioning
+- Feature
+- Refsctor
+- Test: 2
+
+
 ## Releasing_app: v5.1.0
 
 ### Features
