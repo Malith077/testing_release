@@ -26,9 +26,6 @@ jobs:
         with:
           fetch-depth: 200
 
-      - name: Setup workspace
-        uses: ./.github/actions/setup-workspace
-
       - name: Create Release Candidate
         id: create-release-candidate
         working-directory: .github/actions/semantic-versioning
