@@ -1,6 +1,6 @@
-import { execFile } from "child_process";
-import semver from "semver";
-import { commitAndPushChanges } from "./git";
+import { execFile } from 'child_process';
+import semver from 'semver';
+import { commitAndPushChanges } from './git';
 
 type Release = {
 	tag_name: string;
@@ -9,21 +9,13 @@ type Release = {
 
 export function getExistingReleasePullRequest(headRef: string) {
 	return new Promise<number | undefined>((resolve, reject) => {
-		const args = [
-			"pr",
-			"list",
-			"--head",
-			headRef,
-			"--json",
-			"number,headRefName",
-		];
-		execFile("gh", args, (err, stdout, stderr) => {
+		const args = ['pr', 'list', '--head', headRef, '--json', 'number,headRefName'];
+		execFile('gh', args, (err, stdout, stderr) => {
 			if (err) {
 				reject(new Error(stderr || err.message));
 			} else {
-				const prs: Array<{ number: number; headRefName: string }> =
-					JSON.parse(stdout);
-				resolve(prs.find((pr) => pr.headRefName === headRef)?.number);
+				const prs: Array<{ number: number; headRefName: string }> = JSON.parse(stdout);
+				resolve(prs.find(pr => pr.headRefName === headRef)?.number);
 			}
 		});
 	});
@@ -31,8 +23,8 @@ export function getExistingReleasePullRequest(headRef: string) {
 
 export function getRepoName() {
 	return new Promise<string>((resolve, reject) => {
-		const args = ["repo", "view", "--json", "nameWithOwner"];
-		execFile("gh", args, (err, stdout, stderr) => {
+		const args = ['repo', 'view', '--json', 'nameWithOwner'];
+		execFile('gh', args, (err, stdout, stderr) => {
 			if (err) {
 				reject(new Error(stderr || err.message));
 			} else {
@@ -46,19 +38,21 @@ export function getRepoName() {
 export async function getLatestRelease() {
 	const repoFullName = await getRepoName();
 	return new Promise<string | undefined>((resolve, reject) => {
-		const args = ["api", `/repos/${repoFullName}/releases`];
-		execFile("gh", args, (err, stdout, stderr) => {
+		const args = ['api', `/repos/${repoFullName}/releases`];
+		execFile('gh', args, (err, stdout, stderr) => {
 			if (err) {
 				reject(new Error(stderr || err.message));
 			} else {
 				const releases = (JSON.parse(stdout) as Release[])
-					.filter((release) => !release.draft)
+					.filter(release => !release.draft)
 					.sort((a, b) => {
 						const va = semver.coerce(a.tag_name)!;
 						const vb = semver.coerce(b.tag_name)!;
+
 						// reverse sort
 						return semver.compare(vb, va);
 					});
+
 				resolve(releases[0]?.tag_name);
 			}
 		});
@@ -67,19 +61,8 @@ export async function getLatestRelease() {
 
 function createPullRequest(headRef: string, title: string, body: string) {
 	return new Promise<void>((resolve, reject) => {
-		const args = [
-			"pr",
-			"create",
-			"--head",
-			headRef,
-			"--title",
-			title,
-			"--body",
-			body,
-			"--label",
-			"release-candidate",
-		];
-		execFile("gh", args, (err, stdout, stderr) => {
+		const args = ['pr', 'create', '--head', headRef, '--title', title, '--body', body, '--label', 'release-candidate'];
+		execFile('gh', args, (err, stdout, stderr) => {
 			if (err) {
 				reject(new Error(stderr || err.message));
 			} else {
@@ -92,17 +75,17 @@ function createPullRequest(headRef: string, title: string, body: string) {
 function updatePullRequest(number: number, title: string, body: string) {
 	return new Promise<void>((resolve, reject) => {
 		const args = [
-			"pr",
-			"edit",
+			'pr',
+			'edit',
 			number.toString(),
-			"--title",
+			'--title',
 			title,
-			"--body",
+			'--body',
 			body,
-			"--add-label",
-			"release-candidate",
+			'--add-label',
+			'release-candidate',
 		];
-		execFile("gh", args, (err) => {
+		execFile('gh', args, err => {
 			if (err) {
 				reject(new Error(err.message));
 			} else {
@@ -114,21 +97,10 @@ function updatePullRequest(number: number, title: string, body: string) {
 
 function createOrUpdateLabel(name: string, color: string, description: string) {
 	return new Promise<void>((resolve, reject) => {
-		const args = [
-			"label",
-			"create",
-			name,
-			"--color",
-			color,
-			"--description",
-			description,
-			"--force",
-		];
-		execFile("gh", args, (err, stdout, stderr) => {
+		const args = ['label', 'create', name, '--color', color, '--description', description, '--force'];
+		execFile('gh', args, (err, stdout, stderr) => {
 			if (err) {
-				console.error("Warning: Could not create/update label:", stderr || err.message);
-				// Continue without failing.
-				return resolve();
+				reject(new Error(stderr || err.message));
 			} else {
 				resolve();
 			}
@@ -136,20 +108,22 @@ function createOrUpdateLabel(name: string, color: string, description: string) {
 	});
 }
 
-export async function createOrUpdatePullRequest(
-	headRef: string,
-	title: string,
-	body: string
-) {
+export async function createOrUpdatePullRequest(headRef: string, title: string, body: string) {
 	await commitAndPushChanges(headRef, title);
 
 	const prNumber = await getExistingReleasePullRequest(headRef);
 
-	await createOrUpdateLabel(
-		"release-candidate",
-		"cccccc",
-		"Release candidate pull requests"
-	);
+	await createOrUpdateLabel('release-candidate', 'cccccc', 'Release candidate pull requests');
+
+	const existingPRs = await getAllReleaseCandidatePRs();
+	const currentVersion = extractVersionFromBranch(headRef);
+
+	for (const pr of existingPRs) {
+		const prVersion = extractVersionFromBranch(pr.headRefName);
+		if (prVersion && currentVersion && semver.lt(prVersion, currentVersion)) {
+			await closePullRequest(pr.number);
+		}
+	}
 
 	if (prNumber) {
 		return await updatePullRequest(prNumber, title, body);
@@ -158,20 +132,42 @@ export async function createOrUpdatePullRequest(
 	return await createPullRequest(headRef, title, body);
 }
 
+export function extractVersionFromBranch(branchName?: string | null): string | null | undefined {
+	const match = branchName?.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
+	return match ? match[1] : null;
+}
+
+async function getAllReleaseCandidatePRs() {
+	return new Promise<Array<{ number: number; headRefName: string }>>((resolve, reject) => {
+		const args = ['pr', 'list', '--label', 'release-candidate', '--json', 'number,headRefName'];
+		execFile('gh', args, (err, stdout, stderr) => {
+			if (err) {
+				reject(new Error(stderr || err.message));
+			} else {
+				resolve(JSON.parse(stdout) as { number: number; headRefName: string }[]);
+			}
+		});
+	});
+}
+
+function closePullRequest(prNumber: number) {
+	return new Promise<void>((resolve, reject) => {
+		const args = ['pr', 'close', prNumber.toString(), '--comment', 'Closing outdated release-candidate PR'];
+		execFile('gh', args, err => {
+			if (err) {
+				reject(new Error(err.message));
+			} else {
+				resolve();
+			}
+		});
+	});
+}
+
 async function createRelease(version: string, changelog: string, draft = true) {
 	const releaseName = `v${version}`;
 	return new Promise<void>((resolve, reject) => {
-		const args = [
-			"release",
-			"create",
-			releaseName,
-			"--title",
-			releaseName,
-			"--notes",
-			changelog,
-			`--draft=${draft}`,
-		];
-		execFile("gh", args, (err) => {
+		const args = ['release', 'create', releaseName, '--title', releaseName, '--notes', changelog, `--draft=${draft}`];
+		execFile('gh', args, err => {
 			if (err) {
 				reject(new Error(err.message));
 			} else {
@@ -183,19 +179,9 @@ async function createRelease(version: string, changelog: string, draft = true) {
 
 async function updateRelease(version: string, changelog: string, draft = true) {
 	const releaseName = `v${version}`;
-	console.log(`Updating release ${releaseName}`);
 	return new Promise<void>((resolve, reject) => {
-		const args = [
-			"release",
-			"edit",
-			releaseName,
-			"--title",
-			releaseName,
-			"--notes",
-			changelog,
-			`--draft=${draft}`,
-		];
-		execFile("gh", args, (err) => {
+		const args = ['release', 'edit', releaseName, '--title', releaseName, '--notes', changelog, `--draft=${draft}`];
+		execFile('gh', args, err => {
 			if (err) {
 				reject(new Error(err.message));
 			} else {
@@ -208,8 +194,8 @@ async function updateRelease(version: string, changelog: string, draft = true) {
 export async function promoteRelease(version: string) {
 	const releaseName = `v${version}`;
 	return new Promise<void>((resolve, reject) => {
-		const args = ["release", "edit", releaseName, "--draft=false"];
-		execFile("gh", args, (err) => {
+		const args = ['release', 'edit', releaseName, '--draft=false'];
+		execFile('gh', args, err => {
 			if (err) {
 				reject(new Error(err.message));
 			} else {
@@ -222,10 +208,11 @@ export async function promoteRelease(version: string) {
 async function releaseExists(version: string) {
 	const releaseName = `v${version}`;
 	return new Promise<boolean>((resolve, reject) => {
-		const args = ["release", "view", releaseName, "--json", "name"];
-		execFile("gh", args, (err) => {
+		const args = ['release', 'view', releaseName, '--json', 'name'];
+		execFile('gh', args, err => {
 			if (err) {
 				resolve(false);
+				reject(new Error(err.message));
 			} else {
 				resolve(true);
 			}
@@ -233,11 +220,7 @@ async function releaseExists(version: string) {
 	});
 }
 
-export async function createOrUpdateRelease(
-	version: string,
-	changelog: string,
-	draft = true
-) {
+export async function createOrUpdateRelease(version: string, changelog: string, draft = true) {
 	const exists = await releaseExists(version);
 	if (!exists) {
 		return createRelease(version, changelog, draft);
@@ -248,8 +231,8 @@ export async function createOrUpdateRelease(
 
 export function dispatchWorkflow(workflowName: string) {
 	return new Promise<void>((resolve, reject) => {
-		const args = ["workflow", "run", workflowName];
-		execFile("gh", args, (err) => {
+		const args = ['workflow', 'run', workflowName];
+		execFile('gh', args, err => {
 			if (err) {
 				reject(new Error(err.message));
 			} else {
@@ -258,90 +241,3 @@ export function dispatchWorkflow(workflowName: string) {
 		});
 	});
 }
-
-/**
- * Checks for blocking release-candidate PRs.
- * A blocking RC PR is one whose branch version is less than or equal to the latest official release.
- * Exits with error if blocking PRs exist.
- */
-export async function checkRCStatus(): Promise<void> {
-	try {
-	  // Get the latest official release tag using "gh release list".
-	  const latestReleaseTag = await new Promise<string>((resolve, reject) => {
-		execFile(
-		  "gh",
-		  [
-			"release",
-			"list",
-			"--limit", "1",
-			"--json", "tagName",
-			"--jq", ".[0].tagName",
-		  ],
-		  (err, stdout, stderr) => {
-			if (err) {
-			  reject(stderr || err.message);
-			} else {
-			  resolve(stdout.trim());
-			}
-		  }
-		);
-	  });
-  
-	  // Remove leading "v" if present.
-	  const latestReleaseVersion = latestReleaseTag.startsWith("v")
-		? latestReleaseTag.slice(1)
-		: latestReleaseTag;
-	  console.log(`Latest official release: ${latestReleaseTag} (${latestReleaseVersion})`);
-  
-	  // List all open PRs with the "release-candidate" label.
-	  const prJson = await new Promise<string>((resolve, reject) => {
-		execFile(
-		  "gh",
-		  [
-			"pr",
-			"list",
-			"--state", "open",
-			"--label", "release-candidate",
-			"--json", "headRefName",
-		  ],
-		  (err, stdout, stderr) => {
-			if (err) {
-			  reject(stderr || err.message);
-			} else {
-			  resolve(stdout.trim());
-			}
-		  }
-		);
-	  });
-	  const prs = JSON.parse(prJson) as Array<{ headRefName: string }>;
-  
-	  // Filter PRs whose branch version is less than or equal to the latest official version.
-	  const blockingPRs = prs.filter(pr => {
-		const match = pr.headRefName.match(/versioning\/release\/(\d+\.\d+\.\d+)/);
-		if (match) {
-		  const branchVersion = match[1];
-		  return semver.lte(branchVersion, latestReleaseVersion);
-		}
-		return false;
-	  });
-  
-	  if (blockingPRs.length > 0) {
-		console.error(
-		  `Blocking RC PR(s) found for current release: ${blockingPRs
-			.map(pr => pr.headRefName)
-			.join(", ")}`
-		);
-		process.exit(1);
-	  } else {
-		console.log("No blocking RC PRs found. Proceeding with release creation.");
-	  }
-	} catch (error) {
-	  console.error("Error checking RC status:", error);
-	  process.exit(1);
-	}
-  }
-  
-  // If this module is executed directly, check RC status.
-  if (require.main === module) {
-	checkRCStatus();
-  }

@@ -1,61 +1,58 @@
-import { groupBy, sortComparer } from "./util/utils";
-import { ConventionalCommit } from "./conventional-commits";
-import { existsSync } from "fs";
-import { readFile, writeFile } from "fs/promises";
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+import { groupBy, sortComparer } from './util/utils';
+import { ConventionalCommit } from './conventional-commits';
+import { existsSync } from 'fs';
+import { readFile, writeFile } from 'fs/promises';
 
 enum SectionType {
-	Feat = "feat",
-	Fix = "fix",
-	Perf = "perf",
-	Refactor = "refactor",
-	Docs = "docs",
-	Test = "test",
-	Misc = "misc",
+	Feat = 'feat',
+	Fix = 'fix',
+	Perf = 'perf',
+	Refactor = 'refactor',
+	Docs = 'docs',
+	Test = 'test',
+	Misc = 'misc',
 }
 
 const SECTION_TYPE_MAP = {
 	feat: {
 		order: 0,
-		title: "Features",
+		title: 'Features',
 	},
 	fix: {
 		order: 1,
-		title: "Bug Fixes",
+		title: 'Bug Fixes',
 	},
 	perf: {
 		order: 2,
-		title: "Performance Improvements",
+		title: 'Performance Improvements',
 	},
 	refactor: {
 		order: 3,
-		title: "Code Refactoring",
+		title: 'Code Refactoring',
 	},
 	docs: {
 		order: 4,
-		title: "Documentation",
+		title: 'Documentation',
 	},
 	test: {
 		order: 5,
-		title: "Tests",
+		title: 'Tests',
 	},
 	misc: {
 		order: 6,
-		title: "Miscellaneous",
+		title: 'Miscellaneous',
 	},
 };
 
-export function formatLocalChangelogAsMarkdown(
-	commits: ConventionalCommit[]
-): string {
-	const commitsBySection = groupBy(commits, (commit) =>
-		getChangelogSection(commit.type ?? "misc")
-	);
+export function formatLocalChangelogAsMarkdown(commits: ConventionalCommit[]): string {
+	const commitsBySection = groupBy(commits, commit => getChangelogSection(commit.type ?? 'misc'));
 	const sortedSections = Array.from(commitsBySection.entries()).sort(
-		sortComparer(([key]) => SECTION_TYPE_MAP[key].order)
+		sortComparer(([key]) => SECTION_TYPE_MAP[key].order),
 	);
 
 	if (sortedSections.length === 0) {
-		return "";
+		return '';
 	}
 
 	return (
@@ -63,28 +60,21 @@ export function formatLocalChangelogAsMarkdown(
 			.map(([section, commits]) => {
 				const title = SECTION_TYPE_MAP[section].title;
 				const formattedCommits = commits
-					.map((commit) => {
-						let message = commit.message.split("\n")[0] ?? "";
-						message =
-							(message[0]?.toUpperCase() ?? "") +
-							message.slice(1);
+					.map(commit => {
+						let message = commit.message.split('\n')[0] ?? '';
+						message = (message[0]?.toUpperCase() ?? '') + message.slice(1);
 
 						if (commit.breakingChange) {
 							message = `**BREAKING CHANGE** ${message}`;
 						}
 
-						return `- ${[
-							commit.scope ? `**${commit.scope}**:` : "",
-							message,
-						]
-							.filter(Boolean)
-							.join(" ")}`;
+						return `- ${[commit.scope ? `**${commit.scope}**:` : '', message].filter(Boolean).join(' ')}`;
 					})
-					.join("\n");
+					.join('\n');
 
 				return `### ${title}\n\n${formattedCommits}`;
 			})
-			.join("\n\n") + "\n"
+			.join('\n\n') + '\n'
 	);
 }
 
@@ -97,22 +87,17 @@ function getChangelogSection(type: string): SectionType {
 		case SectionType.Docs:
 		case SectionType.Test:
 			return type;
-		case "tests":
+		case 'tests':
 			return SectionType.Test;
 		default:
 			return SectionType.Misc;
 	}
 }
 
-export async function createOrUpdateChangelogFile(
-	basePath: string,
-	changelog: string
-) {
+export async function createOrUpdateChangelogFile(basePath: string, changelog: string) {
 	const changelogPath = `${basePath}/CHANGELOG.md`;
 	const changelogPrefix = `# Changelog\n\n`;
-	const existingContent = existsSync(changelogPath)
-		? await readFile(changelogPath, "utf-8")
-		: "";
+	const existingContent = existsSync(changelogPath) ? await readFile(changelogPath, 'utf-8') : '';
 	let content = `${changelogPrefix}${changelog}`;
 
 	if (existingContent.startsWith(changelogPrefix)) {
@@ -121,3 +106,4 @@ export async function createOrUpdateChangelogFile(
 
 	await writeFile(changelogPath, content);
 }
+

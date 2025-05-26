@@ -17,7 +17,7 @@ export type ConventionalCommit = {
 	message: string;
 };
 
-const VERSION_TYPES = ["none", "patch", "minor", "major"] as const;
+const VERSION_TYPES = ['none', 'patch', 'minor', 'major'] as const;
 const VERSION_TYPE_MAP = {
 	none: 0,
 	patch: 1,
@@ -27,12 +27,8 @@ const VERSION_TYPE_MAP = {
 
 export type VersionType = (typeof VERSION_TYPES)[number];
 
-export function parseConventionalCommit(
-	commitMessage: string
-): ConventionalCommit {
-	const { type, scope, annotation, message } = commitMessage.match(
-		CONVENTIONAL_COMMIT_EXPRESSION
-	)?.groups || {
+export function parseConventionalCommit(commitMessage: string): ConventionalCommit {
+	const { type, scope, annotation, message } = commitMessage.match(CONVENTIONAL_COMMIT_EXPRESSION)?.groups || {
 		type: undefined,
 		scope: undefined,
 		annotation: undefined,
@@ -42,41 +38,36 @@ export function parseConventionalCommit(
 	return {
 		type: type?.toLowerCase(),
 		scope,
-		breakingChange:
-			annotation === "!" || BREAKING_CHANGE_EXPRESSION.test(commitMessage)
-				? true
-				: false,
+		breakingChange: annotation === '!' || BREAKING_CHANGE_EXPRESSION.test(commitMessage) ? true : false,
 		message,
 	};
 }
 
 export function getVersionType(commit: ConventionalCommit): VersionType {
 	if (commit.breakingChange) {
-		return "major";
+		return 'major';
 	}
 
-	if (commit.type === "feat") {
-		return "minor";
+	if (commit.type === 'feat') {
+		return 'minor';
 	}
 
-	if (commit.type === "fix") {
-		return "patch";
+	if (commit.type === 'fix' || commit.type === 'chore') {
+		return 'patch';
 	}
 
-	if (commit.type === "docs" || commit.type === "chore") {
-		return "none";
+	if (commit.type === 'docs') {
+		return 'none';
 	}
 
-	return "patch";
+	return 'patch';
 }
 
 export function getVersionTypeNumber(versionType: VersionType): number {
 	return VERSION_TYPE_MAP[versionType];
 }
 
-export function getVersionTypeFromNumber(
-	versionTypeNumber: number
-): VersionType {
+export function getVersionTypeFromNumber(versionTypeNumber: number): VersionType {
 	const result = VERSION_TYPES[versionTypeNumber] as VersionType;
 
 	if (!result) {
@@ -85,3 +76,4 @@ export function getVersionTypeFromNumber(
 
 	return result;
 }
+

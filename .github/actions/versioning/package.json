@@ -2,16 +2,14 @@
   "name": "versioning",
   "version": "1.0.0",
   "main": "index.js",
-
-    "scripts": {
-      "setup": "npm install",
-      "index": "npm run setup && tsx ./src/index.ts",
-      "version:update": "npm run setup && npm run test && tsx ./src/update.ts",
-      "version:release-candidate": "npm run setup && npm run test && tsx ./src/release-candidate.ts",
-      "version:create-release": "npm run setup && npm run test && tsx ./src/create-release.ts",
-      "test": "vitest"
-    }
-  ,
+  "scripts": {
+    "setup": "npm install",
+    "index": "npm run setup && tsx ./src/index.ts",
+    "version:update": "npm run setup && npm run test && tsx ./src/update.ts",
+    "version:release-candidate": "npm run setup && npm run test && tsx ./src/release-candidate.ts",
+    "version:create-release": "npm run setup && npm run test && tsx ./src/create-release.ts",
+    "test": "vitest"
+  },
   "author": "",
   "license": "ISC",
   "description": "",

@@ -1,48 +1,50 @@
-import { exportVariable } from "@actions/core";
-import { getChangeDetails } from "./changes";
-import { getWorkspaceVersion, updateAllWorkspaces } from "./workspace";
-import { getRepoPath } from "./git";
-import projectDefinitions from "../projects/projects.json";
-const VERSION_SUFFIX_EXPRESSION = /^--suffix=(?<suffix>[^\s]+)$/;
-
-function getVersionSuffix(): string | undefined {
-	const arg = process.argv
-		.slice(2)
-		.find((arg) => VERSION_SUFFIX_EXPRESSION.test(arg));
-	return arg?.match(VERSION_SUFFIX_EXPRESSION)?.groups?.suffix;
-}
+ import { setOutput } from '@actions/core';
+import { getChangeDetails } from './changes';
+import { getWorkspaceVersion, updateAllProjects } from './workspace';
+import { getRepoPath } from './git';
+import { getBuildNumber, getVersionSuffix } from './util/arguments-parser';
+import projectDefinitions from '../projects/projects.json';
 
 (async () => {
 	const changeDetails = await getChangeDetails(true);
 	if (!changeDetails) {
-		console.log("No changes detected.");
 		return;
 	}
 
-	const versionSuffix = getVersionSuffix() ?? "";
-	await updateAllWorkspaces(changeDetails, versionSuffix);
+	const versionSuffix = getVersionSuffix() ?? '';
+	const buildNumber = getBuildNumber();
+
+	await updateAllProjects(changeDetails, versionSuffix, buildNumber);
 
 	const rootPath = await getRepoPath();
 
-	// Process each project from the config
-	for (const project of projectDefinitions.projects) {
-		const projectChange = changeDetails.changes.find(
-			(change) =>
-				change.location.startsWith(project) &&
-				change.versionType !== "none"
+	// Helper: For a given project, retrieve version details from changes.
+	const getProjectVersions = async (project: string) =>
+		await Promise.all(
+			changeDetails.changes
+				.filter(change => change.location.startsWith(project) && change.versionType !== 'none')
+				.map(async change => getWorkspaceVersion(rootPath, change.location))
+				.filter(Boolean),
 		);
 
-		const projectVersion = projectChange
-			? await getWorkspaceVersion(rootPath, projectChange.location)
-			: await getWorkspaceVersion(rootPath, project);
+	const projectMatrix = await Promise.all(
+		projectDefinitions.projects.map(async project => {
+			const versions = await getProjectVersions(project);
+			let versionData: { name: string; location: string; version: string } | undefined;
 
-		if (projectVersion) {
-			exportVariable(project, JSON.stringify(projectVersion));
-			console.log(
-				`Exported ${project} version: ${JSON.stringify(projectVersion)}`
-			);
-		} else {
-			console.log(`${project} version not found.`);
+			if (versions.length > 0) {
+				versionData = versions[0];
+			} else {
+				versionData = await getWorkspaceVersion(rootPath, project);
+			}
+
+			return versionData;
+		}),
+	).then(results => results.filter(Boolean));
+
+	projectMatrix.forEach(project => {
+		if (project) {
+			setOutput(`${project.name}-version`.toLowerCase(), project.version);
 		}
-	}
+	});
 })();
