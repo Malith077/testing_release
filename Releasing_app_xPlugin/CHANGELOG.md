@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app_xPlugin: v5.2.3
+
+### Miscellaneous
+
+- Feature plugin
+
+
 ## Releasing_app_xPlugin: v5.2.2
 
 ### Bug Fixes

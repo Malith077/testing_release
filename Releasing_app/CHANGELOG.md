@@ -1,5 +1,12 @@
 # Changelog
 
+## Releasing_app: v5.6.0
+
+### Features
+
+- New feature : main app
+
+
 ## Releasing_app: v5.5.0
 
 ### Features
