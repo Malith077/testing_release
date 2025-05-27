@@ -22,6 +22,6 @@ jobs:
 
       - name: Trigger release
         run: |
-          gh workflow run "Create Release"
+          # gh workflow run "Create Release"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
